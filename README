@@ -1,6 +1,6 @@
 #-------------------------------------------------------
 #
-# $Id: README,v 5.0.2.1 2001/02/13 15:45:57 devel Exp $
+# $Id: README,v 1.1.1.1 2001/04/07 18:43:45 devel Exp $
 #
 # Copyright (c) 1997, 1998  Edmund Mergl
 #
@@ -9,7 +9,7 @@
 DESCRIPTION:
 ------------
 
-This is version 1.0 of Cmenu
+This is version 1.1 of Cmenu
 
 Cmenu is a menuing system for perl scripts with a look and feel
 reminiscient of dialog - the command line utility
@@ -33,9 +33,9 @@ REQUIREMENTS:
 PLATFORMS:
 ----------
 
-  This release of Cmenu has been developed using Linux 2.2.
+  This release of perlDialog has been developed using Linux 2.2.
   It has been tested using these terminals
- 	linux console
+ 	linux console linuxm
 	xterm
 	Wyse 60 using VT100 emulation (tic file supplied)
 
@@ -74,6 +74,7 @@ Detailed documentation can be found in the doc directory. Use
 	latex Cmenu.tex			# needs TeX
 	xdvi Cmenu.dvi			# needs XFree
 	dvips -f Cmenu.dvi|lpr		# needs dvips
+	a browser to read the html dir (doc/html)
 to process these files.
 
 Use 'perldoc Cmenu' after installation to read the documentation 
@@ -90,6 +91,7 @@ The following files have been included as extras
 			~/.cmenurc		User defaults
 			./cmenurc		Current deaults
 		Config files are checked in the above precedence
+		Read the file to see what it can do
    vt100-wy.ti	A tic file for the terminfo database. It is for
 		a Wyse 60 (or equivalent) emulating a VT100. Extra
 		function keys have been mapped to default strings

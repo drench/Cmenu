@@ -1,13 +1,13 @@
 #****************************************************************************
 # Cmenu.pm -- Perl Curses Menu Support Facility 
 #
-# Last updated Time-stamp: <01/04/07 18:11:21 devel> 
+# Last updated Time-stamp: <01/10/20 23:14:23 devel> 
 # 
 #
-# Author:  Andy Ferguson (andy@moil.demon.co.uk)
-#          Holywood Rudolf Steiner School
-#          Holywood, Northern Ireland
-#          BT18 0PR
+# Author:  Andy Ferguson (cmenu@afccommercial.co.uk)
+#          AFC Commercial
+#          Bangor, Northern Ireland
+#          BT19 1PF
 #
 # derived from [perlmenu] (Version +4.0):
 #          Steven L. Kunz
@@ -22,6 +22,7 @@
 #          Version 5.2 -- Jan, 2001 -- bugfix and check for Curses >1.03
 #          Version 5.3 -- Feb, 2001 -- Use hash for kseq and fix numeric data entry
 #          Version 1.0 -- Apr, 2001 -- Minor fixes and revised for CPAN
+#          Version 1.1 -- Oct, 2001 -- Improvements in rc configuration
 #
 # Notes:   Perl4 - Will not work since it relies on Curses.pm
 #                  Use perlmenu.pm instead
@@ -111,7 +112,7 @@ require Exporter;
 		 $menu_sepn
 	       );
 
-$Cmenu::VERSION ='1.00';
+$Cmenu::VERSION ='1.01';
 
 use vars qw($VERSION $menu_sep $menu_sepn);
 
@@ -219,26 +220,8 @@ my $menu_top_option=0;       # current menu item at the top of the display
 my $menu_cur_option=0;       # the active menu option during navigation
    
 # define global colour variables
-my @menu_colour=();          # container for colours
-# these get filled in after Curses has been initialised
-my $menu_hascolor;
-my $menu_att_backdrop;
-my $menu_att_advice  ;
-my $menu_att_text    ;
-my $menu_att_title   ;
-my $menu_att_option  ;
-my $menu_att_button  ;
-my $menu_att_scroll  ;
-my $menu_att_rtext   ;
-my $menu_att_rtitle  ;
-my $menu_att_roption ;
-my $menu_att_edge    ;
-my $menu_att_dull    ;
-my $menu_att_help    ;
-my $menu_att_warn    ;
-my $menu_att_error   ;
-my $menu_att_popup   ;
- 
+my %menu_attributes=();      # load and hold color definitions
+my $menu_hascolor;           # terminal colour capability flag
 
 # Initialise menu item arrays
 my @menu_sel_text =();             # Menu item text
@@ -248,6 +231,10 @@ my @menu_sel_flag = ();            # Menu item special
 my @menu_sel_return = ();          # value to be returned on selection
 my @menu_sel_pos = ();             # Menu item position (data fields)
                                    #   max length + dec.places + 0
+
+# User hacks
+my($menu_hack25)=0;                # hack to make a small screen bigger
+
 
 # Set the default file for help display
 my $menu_help="help.txt";
@@ -295,7 +282,6 @@ my $buffer = "";                   # temp storage for field editing
 sub menu_initialise {
  my ($title,$advice)=@_;
  my ($key,$action);
- my @menu_colour = ();
 
  $menu_title=$title;
  $menu_advice=$advice;
@@ -312,8 +298,9 @@ sub menu_initialise {
    if(!$menu_screen) {          # Checks whether user has done this already
      $menu_screen=&initscr();   # create a curses structure
    }                       # auto save tty settings to be restore at end by endwin
+   $menu_hascolor=eval {has_colors()};
+   start_color(); 
 
-   clear();                # clear the screen
    
 # ##################################################################################
 # BLOCK 2
@@ -330,8 +317,10 @@ sub menu_initialise {
 # Cursor movement
 #   UP       : move up
 #   DOWN     : move down
-#   RITE     : move right - can mimic lynx-style motion
-#   LEFT     : move left - can mimic lynx-style motion
+#   RITE     : move right
+#   LEFT     : move left
+#   LYNXR    : move right - can mimic lynx-style motion
+#   LYNXL    : move left - can mimic lynx-style motion
 # Large cursor movement
 #   HOME     : go to top (of menu)
 #   END      : go to bottom (of menu)
@@ -406,8 +395,8 @@ sub menu_initialise {
 # --< Xterm hacks >---------------------------------------------------------------
    $kseq{"\033[A"}="UP";        # Ansi cursor-up (for DEC xterm)
    $kseq{"\033[B"}="DOWN";      # Ansi cursor-down (for DEC xterm)
-   $kseq{"\033[C"}="RITE";      # Ansi cursor-right (for DEC xterm)
-   $kseq{"\033[D"}="LEFT";      # Ansi cursor-left (for DEC xterm)
+   $kseq{"\033[C"}="RITE";     # Ansi cursor-right (for DEC xterm)
+   $kseq{"\033[D"}="LEFT";     # Ansi cursor-left (for DEC xterm)
    # added mapping for Home/End and Page buttons for xterms
    $kseq{"\033[E"}="PREV";    # Ansi guess (for DEC xterm)
    $kseq{"\033[F"}="END";     # Ansi end key (for DEC xterm)
@@ -421,8 +410,8 @@ sub menu_initialise {
 # --< Emacs hacks >---------------------------------------------------------------
    $kseq{"\cA"}="HOME";       # begin of line
    $kseq{"\cE"}="END";        # end of line
-   $kseq{"\cF"}="RITE";       # next char
-   $kseq{"\cB"}="LEFT";       # prev char
+   $kseq{"\cF"}="RITE";      # next char
+   $kseq{"\cB"}="LEFT";      # prev char
    $kseq{"\cN"}="TAB";        # next field
    $kseq{"\cP"}="BACK";       # prev field
    $kseq{"\cL"}="REFS";       # redraw screen
@@ -452,8 +441,8 @@ sub menu_initialise {
    $kseq{scalar(KEY_BTAB)}="BTAB";    # shifted tab
    $kseq{scalar(KEY_UP)}="UP";        # up arrow
    $kseq{scalar(KEY_DOWN)}="DOWN";    # down arrow
-   $kseq{scalar(KEY_LEFT)}="LEFT";    # left arrow
-   $kseq{scalar(KEY_RIGHT)}="RITE";   # right arrow
+   $kseq{scalar(KEY_LEFT)}="LYNXL";   # left arrow
+   $kseq{scalar(KEY_RIGHT)}="LYNXR";  # right arrow
    $kseq{scalar(KEY_ENTER)}="RET";    # enter key
    $kseq{scalar(KEY_BREAK)}="EXIT";   # break
    $kseq{"\cJ"}="RET";                # normal return key
@@ -479,22 +468,50 @@ sub menu_initialise {
 # Load defaults from a config file if it exists
 # ##################################################################################
 
-   # Set defaults
+   # Does the terminal have colour?
+   $menu_hascolor = eval { has_colors() };
 
-   # Default colour preferences
-   $menu_colour[0]=COLOR_BLUE;  
-   $menu_colour[1]=COLOR_CYAN;
-   $menu_colour[2]=COLOR_WHITE;
-   $menu_colour[3]=COLOR_BLUE;
-   $menu_colour[4]=COLOR_BLACK;
-   $menu_colour[5]=COLOR_YELLOW;
-   $menu_colour[6]=COLOR_RED;
-   $menu_colour[7]=COLOR_WHITE;
-   $menu_colour[8]=COLOR_GREEN;
-
-   if(-e "/etc/Cmenu/.cmenurc") {
+   if($menu_hascolor==1) {
+	 # Set default colours for init_pairs
+	 $menu_attributes{"backdrop"}="6.4.NORMAL";
+	 $menu_attributes{"advice"}="6.4.BOLD";
+	 $menu_attributes{"text"}="0.7.NORMAL";
+	 $menu_attributes{"title"}="3.7.BOLD";
+	 $menu_attributes{"option"}="1.7.BOLD";
+	 $menu_attributes{"button"}="7.7.BOLD";
+	 $menu_attributes{"scroll"}="2.7.BOLD";
+	 $menu_attributes{"rtext"}="7.4.BOLD";
+	 $menu_attributes{"rtitle"}="6.4.BOLD";
+	 $menu_attributes{"roption"}="3.4.BOLD";
+	 $menu_attributes{"edge"}="7.7.BOLD";
+	 $menu_attributes{"dull"}="0.7.BOLD";
+	 $menu_attributes{"help"}="0.2.BOLD";
+	 $menu_attributes{"warn"}="7.3.NORMAL";
+	 $menu_attributes{"error"}="7.1.NORMAL";
+	 $menu_attributes{"popup"}="3.2.BOLD";
+	 $menu_attributes{"shadow"}="0.0.NORMAL";
+   } else {
+	 # Set mono defaults
+	 $menu_attributes{"backdrop"}="DIM";
+	 $menu_attributes{"advice"}="NORMAL";
+	 $menu_attributes{"text"}="NORMAL";
+	 $menu_attributes{"title"}="NORMAL";
+	 $menu_attributes{"option"}="BOLD";
+	 $menu_attributes{"button"}="DIM";
+	 $menu_attributes{"scroll"}="NORMAL";
+	 $menu_attributes{"rtext"}="REVERSE";
+	 $menu_attributes{"rtitle"}="REVERSE";
+	 $menu_attributes{"roption"}="REVERSE|BLINK";
+	 $menu_attributes{"edge"}="DIM";
+	 $menu_attributes{"dull"}="DIM";
+	 $menu_attributes{"help"}="REVERSE";
+	 $menu_attributes{"warn"}="REVERSE";
+	 $menu_attributes{"error"}="REVERSE";
+	 $menu_attributes{"popup"}="NORMAL";
+   }
+   if(-e "/etc/Cmenu/cmenurc") {
      # load system wide preferences
-     &menu_config_file("/etc/Cmenu/.cmenurc");
+     &menu_config_file("/etc/Cmenu/cmenurc");
    }
    if(-e "~/.cmenurc") {
      # Load the users specific preferences
@@ -504,79 +521,12 @@ sub menu_initialise {
      # Load the application specific preferences
      &menu_config_file("cmenurc");
    }
-   
+
+   # Now setup colour rendering
+   menu_set_colours();
+
 # ##################################################################################
 # BLOCK 4
-# =======
-# Sort out colour stuff and establish styles
-# ##################################################################################
-
-   # check and do colour stuff
-   $menu_hascolor = eval { has_colors() };
-   
-   if ($menu_hascolor) {	
-     start_color();
-     
-     init_pair(1, $menu_colour[1] , $menu_colour[0] ); # backdrop
-     init_pair(2, $menu_colour[4] , $menu_colour[2] ); # window text
-     init_pair(3, $menu_colour[5] , $menu_colour[2] ); # window title - bold
-     init_pair(4, $menu_colour[6] , $menu_colour[2] ); # window option - bold
-     init_pair(5, $menu_colour[7] , $menu_colour[2] ); # window button - bold
-     init_pair(6, $menu_colour[8] , $menu_colour[2] ); # scroller - bold
-     init_pair(7, $menu_colour[2] , $menu_colour[3] ); # reverse text - BOLD
-     init_pair(8, $menu_colour[1] , $menu_colour[3] ); # reverse title - bold
-     init_pair(9, $menu_colour[5] , $menu_colour[3] ); # reverse option - bold
-     
-     init_pair(10,$menu_colour[2] , $menu_colour[2] ); # edge bright - bold
-     init_pair(11,$menu_colour[4] , $menu_colour[2] ); # edge dull 
-     
-     init_pair(12,COLOR_BLACK     , COLOR_BLACK     ); # shadow
-     init_pair(13,$menu_colour[5] , $menu_colour[2] ); # help
-     init_pair(14,$menu_colour[6] , $menu_colour[8] ); # warn
-     init_pair(15,$menu_colour[7] , $menu_colour[6] ); # error
-     init_pair(16,$menu_colour[5] , $menu_colour[8] ); # popup
-     
-     $menu_att_backdrop = COLOR_PAIR(1)|A_BOLD;
-     $menu_att_advice   = COLOR_PAIR(1);
-     $menu_att_text     = COLOR_PAIR(2);
-     $menu_att_title    = COLOR_PAIR(3)|A_BOLD;
-     $menu_att_option   = COLOR_PAIR(4);
-     $menu_att_button   = COLOR_PAIR(5)|A_BOLD;
-     $menu_att_scroll   = COLOR_PAIR(6)|A_BOLD;
-     $menu_att_rtext    = COLOR_PAIR(7)|A_BOLD;
-     $menu_att_rtitle   = COLOR_PAIR(8)|A_BOLD;
-     $menu_att_roption  = COLOR_PAIR(9)|A_BOLD;
-     $menu_att_edge     = COLOR_PAIR(10)|A_BOLD;
-     $menu_att_dull     = COLOR_PAIR(11)|A_BOLD;
-     $menu_att_help     = COLOR_PAIR(13);
-     $menu_att_warn     = COLOR_PAIR(14);
-     $menu_att_error    = COLOR_PAIR(15);
-     $menu_att_popup    = COLOR_PAIR(16)|A_BOLD;
-     
-   } else {
-     # for monochrome terminals
-     $menu_att_backdrop = A_NORMAL;
-     $menu_att_advice   = A_NORMAL;
-     $menu_att_text     = A_NORMAL;
-     $menu_att_title    = A_BOLD;
-     $menu_att_option   = A_BOLD;
-     $menu_att_button   = A_BOLD;
-     $menu_att_scroll   = A_NORMAL;
-     $menu_att_rtext    = A_REVERSE|A_NORMAL;
-     $menu_att_rtitle   = A_REVERSE|A_BOLD;
-     $menu_att_roption  = A_REVERSE|A_BOLD;
-     $menu_att_edge     = A_BOLD;
-     $menu_att_dull     = A_NORMAL;
-     $menu_att_help     = A_REVERSE;
-     $menu_att_warn     = A_REVERSE|A_BOLD;
-     $menu_att_error    = A_REVERSE|A_BOLD;
-     # Make inlay larger since there is no shadow
-     $menu_inlay_y=$menu_inlay_y-1;
-     $menu_inlay_x=$menu_inlay_x-2;
-   }
-
-# ##################################################################################
-# BLOCK 5
 # =======
 # Draw the screens backdrop and establish dimensions
 # ##################################################################################
@@ -610,15 +560,123 @@ sub menu_config_file {
   while(<IN>) {
     if(length($_)>1) {
       chop;
+	  # Remove all spaces
+	  s/ //g;
       ($type,undef,$key,$action)=split(/:/);
-      if($type eq "C") { $menu_colour[$key]=$action; }
+      if(($type eq "C")&&($menu_hascolor)) { $menu_attributes{$key}=$action; }
+      if(($type eq "M")&&(!$menu_hascolor)){ $menu_attributes{$key}=$action; }
       if($type eq "H") { $menu_help_root=$action; }
       if($type eq "K") { $kseq{$key}=$action; }
+      if($type eq "X") {
+		if($action eq "hack25") { $menu_hack25=1; }
+	  }
     }
   }
   close(IN);
 }
 
+#**********
+#  MENU_SET_COLOURS
+#
+#  Function:	Defines and sets up terminal and user defined colours
+#
+#  Call format:	&menu_set_colours();
+#
+#  Notes:       NONE
+#**********
+sub menu_set_colours {
+
+  my ($i,$x,$y,$z,$key);
+  my @menu_colour=();
+
+  if ($menu_hascolor==1) {	
+	# Set colours
+	# Default colour preferences
+	$menu_colour[0]=COLOR_BLACK;
+	$menu_colour[1]=COLOR_RED;
+	$menu_colour[2]=COLOR_GREEN;
+	$menu_colour[3]=COLOR_YELLOW;
+	$menu_colour[4]=COLOR_BLUE;
+	$menu_colour[5]=COLOR_MAGENTA;
+	$menu_colour[6]=COLOR_CYAN;
+	$menu_colour[7]=COLOR_WHITE;
+	# Set color rendering
+	$i=1;
+	foreach $key(keys(%menu_attributes)) {
+	  ($x,$y,$z)=split(/\./,$menu_attributes{$key});
+	  init_pair($i,$menu_colour[$x],$menu_colour[$y] );
+	  $menu_attributes{$key}=COLOR_PAIR($i)|menu_set_attributes($z);
+	  $i++;
+	}
+  } else {
+	# for monochrome terminals
+	foreach $key(keys(%menu_attributes)) {
+	  $menu_attributes{$key}=menu_set_attributes($menu_attributes{$key});
+	}
+	# Make inlay larger since there is no shadow
+	$menu_inlay_y=$menu_inlay_y-1;
+	$menu_inlay_x=$menu_inlay_x-2;
+  }
+  clear();                # clear the screen
+
+}
+
+#**********
+#  MENU_SET_ATTRIBUTES
+#
+#  Function:	Set display attributes appending to any existing colour info
+#
+#  Call format:	&menu_set_attributes(attribute_string);
+#
+#  Notes:       The attribute string contains any Curses element from this list
+#                   NORMAL BOLD STANDOUT DIM BLINK REVERSE UNDERLINE
+#               each seperated by a vertical bar (|) This is the format passed
+#               in from the Config file
+#               These attribs cannot always be rendered by the terminal
+#**********
+sub menu_set_attributes {
+  my($x)=@_;
+  my($atts)=0;
+  my($i);
+  my(@y)=();
+
+  if(length($x)>0) {
+	@y=split(/\|/,$x);
+	for($i=0;$i<=$#y;$i++) {
+	ATTRIBUTES: for($y[$i]) {
+		/NORMAL/ && do {
+		  $atts=$atts|A_NORMAL;
+		  last ATTRIBUTES;
+		};
+		/STANDOUT/ && do {
+		  $atts=$atts|A_STANDOUT;
+		  last ATTRIBUTES;
+		};
+		/UNDERLINE/ && do {
+		  $atts=$atts|A_UNDERLINE;
+		  last ATTRIBUTES;
+		};
+		/REVERSE/ && do {
+		  $atts=$atts|A_REVERSE;
+		  last ATTRIBUTES;
+		};
+		/BLINK/ && do {
+		  $atts=$atts|A_BLINK;
+		  last ATTRIBUTES;
+		};
+		/DIM/ && do {
+		  $atts=$atts|A_DIM;
+		  last ATTRIBUTES;
+		};
+		/BOLD/ && do {
+		  $atts=$atts|A_BOLD;
+		  last ATTRIBUTES;
+		};
+	  }
+	}
+  }
+  return($atts);
+}
 
 #**********
 #  MENU_REDRAW_BACKDROP
@@ -640,7 +698,7 @@ sub menu_redraw_backdrop {
   # Draw title on the backdrop
   # Backdrop fills whole screen with a title at the top (left-just)
   # and a small advice note at the foot (centred)
-  &bkgd($menu_screen,$menu_att_backdrop);
+  &bkgd($menu_screen,$menu_attributes{"backdrop"});
   &clear($menu_screen);
   if(length($menu_title)<1) {
     &addstr($menu_screen,0,1,"Cmenu Menu");
@@ -650,7 +708,7 @@ sub menu_redraw_backdrop {
   &move($menu_screen,1,1);
   &hline($menu_screen,ACS_HLINE,$menu_screen_cols-2);
   # Display system advice message
-  &attrset($menu_screen,$menu_att_advice);
+  &attrset($menu_screen,$menu_attributes{"advice"});
   &move($menu_screen,$menu_screen_lines-1,0);
   if(length($menu_advice)>0) {
     &addstr($menu_screen,$menu_screen_lines-1,($menu_screen_cols-length($menu_advice))/2,$menu_advice);
@@ -658,7 +716,7 @@ sub menu_redraw_backdrop {
   
   if($menu_hascolor) {
     # Draw basic Window inlay with shadow (colour only)
-    attrset($menu_screen,COLOR_PAIR(12));
+    attrset($menu_screen,$menu_attributes{"shadow"});
     move($menu_screen,$menu_inlay_y+1,$menu_screen_cols-$menu_inlay_x);
     vline($menu_screen," ",$menu_screen_lines-($menu_inlay_y*2));
     move($menu_screen,$menu_inlay_y+1,$menu_screen_cols-$menu_inlay_x+1);
@@ -668,7 +726,7 @@ sub menu_redraw_backdrop {
   }
   # Create Window insert
   $menu_inlay=newwin($menu_screen_lines-($menu_inlay_y*2),$menu_screen_cols-($menu_inlay_x*2),$menu_inlay_y,$menu_inlay_x);
-  bkgd($menu_inlay,$menu_att_text);
+  bkgd($menu_inlay,$menu_attributes{"text"});
   &clear($menu_inlay);
   
   noutrefresh($menu_screen);
@@ -692,6 +750,8 @@ sub menu_redraw_backdrop {
 #**********
 sub menu_terminate {
   my ($message)=@_;
+
+  my($key);
 
   &delwin($menu_inlay);
   &standend();
@@ -777,7 +837,7 @@ sub menu_init {
 #  Arguments:	- "Item text" the string presented in menu. Required.
 #                 If this item is blank the menu item will be totally ignored
 #                 This may be useful when displaying blank fields or empty records
-#		- "Text label" String returned if selected. Optional.
+#		        - "Text label" String returned if selected. Optional.
 #                 This will also be used as an abbreviated name in some styles, 
 #                 the first character being the option letter (auto-capitalised)
 #                 Although some options do not need a label, it is strongly
@@ -840,8 +900,8 @@ sub menu_init {
 #                        to break up the display
 #                        The labels are used directly as textual seperators
 #                        it must at least be " " or the item will be ignored
-#		- pre_set_flag: Value to pre-set multiple selection menu. Optional.
-#		  (neg=lockout selection,0=allow selection,1=preset selection)
+#		        - pre_set_flag: Value to pre-set multiple selection menu. Optional.
+#		          (neg=lockout selection,0=allow selection,1=preset selection)
 #                 For radio/checklists - toggles options on (1) or off (0)
 #                 For offset items this is the value to be returned
 #               - item_pos: specifies the explicit location of a data field  
@@ -953,7 +1013,7 @@ sub menu_advice {
 
   if($menu_buttons==0) {
     # Display messages in button bar
-    &attrset($menu_inlay,$menu_att_dull);
+    &attrset($menu_inlay,$menu_attributes{"dull"});
     &move($menu_inlay,$menu_inlay_lines-2,1);
     &clrtoeol($menu_inlay);
     move($menu_inlay,$menu_inlay_lines-2,$menu_inlay_cols-1);
@@ -966,7 +1026,7 @@ sub menu_advice {
     &noutrefresh($menu_inlay);
   } else {
     # display messages at foot of screen
-    &attrset($menu_screen,$menu_att_advice);
+    &attrset($menu_screen,$menu_attributes{"advice"});
     &move($menu_screen,$menu_screen_lines-1,1);
     &clrtoeol($menu_screen);
     if(length($advice) > 0 ) {
@@ -1051,19 +1111,19 @@ sub menu_navigate {
 	move($menu_window,0,$menu_pane_scroll);
 	if($menu_top_option>0) {
 	  # there are items above this
-	  attrset($menu_window,$menu_att_scroll);
+	  attrset($menu_window,$menu_attributes{"scroll"});
 	  addstr($menu_window, "-^-");
 	} else {
-	  attrset($menu_window,$menu_att_dull);
+	  attrset($menu_window,$menu_attributes{"dull"});
 	  hline($menu_window,ACS_HLINE,3);
 	}  
 	move($menu_window,$menu_pane_lines-1,$menu_pane_scroll);
 	if($menu_index-1>$menu_top_option+$menu_pane_lines-3) {
 	  # there are items below this
-	  attrset($menu_window,$menu_att_scroll);
+	  attrset($menu_window,$menu_attributes{"scroll"});
 	  addstr($menu_window, "-v-");
 	} else {
-	  attrset($menu_window,$menu_att_edge);
+	  attrset($menu_window,$menu_attributes{"edge"});
 	  hline($menu_window,ACS_HLINE,3);
 	}  
 	noutrefresh($menu_window);
@@ -1083,6 +1143,26 @@ sub menu_navigate {
 	$ret=$menu_sel_return[$menu_cur_option].$menu_sep;
 
 	# General cursor movement
+	/LEFT/ && do {		# Left arrow
+	  # Treat this like an UP-Menu request
+	  $action="UP";
+#	  redo KEYWAIT;
+	};
+	/RITE/ && do {		# Right arrow
+	  # Treat this like a RETURN
+	  $action="DOWN";
+#	  redo KEYWAIT;
+	};
+	/LYNXL/ && do {		# Left arrow
+	  # Treat this like an UP-Menu request
+	  $action="QUIT";
+	  redo KEYWAIT;
+	};
+	/LYNXR/ && do {		# Right arrow
+	  # Treat this like a RETURN
+	  $action="RET";
+	  redo KEYWAIT;
+	};
 	/DOWN/ && do {		# down arrow
 	  if($menu_cur_option==$menu_index-1) {
 	    # Hit the bottom
@@ -1123,16 +1203,6 @@ sub menu_navigate {
 	  }
 	  &doupdate();
 	  last KEYWAIT;
-	};
-	/LEFT/ && do {		# Left arrow
-	  # Treat this like an UP-Menu request
-	  $action="QUIT";
-	  redo KEYWAIT;
-	};
-	/RITE/ && do {		# Right arrow
-	  # Treat this like a RETURN
-	  $action="RET";
-	  redo KEYWAIT;
 	};
 	# larger cursor motion
 	/PREV/ && do {		# Page up
@@ -1422,7 +1492,7 @@ sub menu_draw_inlay {
 
 # Draw relief boxes in window
   erase($menu_inlay);
-  attrset($menu_inlay,$menu_att_edge);
+  attrset($menu_inlay,$menu_attributes{"edge"});
   addch($menu_inlay,0,0, ACS_ULCORNER);
   hline($menu_inlay,ACS_HLINE, $menu_inlay_cols);
 
@@ -1432,7 +1502,7 @@ sub menu_draw_inlay {
   addch($menu_inlay,$menu_inlay_lines-3,0,ACS_LTEE);
   hline($menu_inlay,ACS_HLINE,$menu_inlay_cols-2);
 
-  attrset($menu_inlay,$menu_att_dull);
+  attrset($menu_inlay,$menu_attributes{"dull"});
   move($menu_inlay,$menu_inlay_lines-1,1);
   hline($menu_inlay,ACS_HLINE, $menu_inlay_cols-2);
   addch($menu_inlay, $menu_inlay_lines-1,$menu_inlay_cols-1,ACS_LRCORNER);
@@ -1443,12 +1513,12 @@ sub menu_draw_inlay {
   addch($menu_inlay,$menu_inlay_lines-3,$menu_inlay_cols-1,ACS_RTEE);
 
   # Draw the Menu title
-  attrset($menu_inlay,$menu_att_title);
+  attrset($menu_inlay,$menu_attributes{"title"});
   move($menu_inlay,0,($menu_inlay_cols-length($menu_top_title)-2)/2);
   addstr($menu_inlay," $menu_top_title ");
 
   # Process any sub-titles like the title.
-  attrset($menu_inlay,$menu_att_dull);
+  attrset($menu_inlay,$menu_attributes{"dull"});
   if(length($menu_sub_title)>$menu_inlay_cols-4) {
     # Do multi-line subtitle
     @words=split(/ /,$menu_sub_title);
@@ -1495,16 +1565,20 @@ sub menu_draw_window {
   # First define window and draw border
   $menu_pane_y=$menu_inlay_y+1+$menu_sub_title_lines;
   $menu_pane_x=$menu_inlay_x+2;
-  $menu_pane_lines=$menu_inlay_lines-4-$menu_sub_title_lines;
+  if($menu_hack25) {
+	$menu_pane_lines=$menu_inlay_lines-3-$menu_sub_title_lines;
+  } else {
+	$menu_pane_lines=$menu_inlay_lines-4-$menu_sub_title_lines;
+  }
   $menu_pane_cols=$menu_inlay_cols-4;
   $menu_pane_scroll=($menu_pane_cols/2)-2;
 
   $menu_window=newwin($menu_pane_lines,$menu_pane_cols,$menu_pane_y,$menu_pane_x);
-  bkgd($menu_window,$menu_att_text);
+  bkgd($menu_window,$menu_attributes{"text"});
   erase($menu_window);
 
   # Draw relief boxes in window
-  attrset($menu_window,$menu_att_dull);
+  attrset($menu_window,$menu_attributes{"dull"});
   addch($menu_window,0,0, ACS_ULCORNER);
   hline($menu_window,ACS_HLINE, $menu_pane_cols-2);
 
@@ -1512,7 +1586,7 @@ sub menu_draw_window {
   vline($menu_window,ACS_VLINE, $menu_pane_lines-2);
   addch($menu_window,$menu_pane_lines-1,0, ACS_LLCORNER);
 
-  attrset($menu_window,$menu_att_edge);
+  attrset($menu_window,$menu_attributes{"edge"});
   move($menu_window,$menu_pane_lines-1,1);
   hline($menu_window,ACS_HLINE, $menu_pane_cols-2);
   addch($menu_window, $menu_pane_lines-1,$menu_pane_cols-1,ACS_LRCORNER);
@@ -1563,7 +1637,7 @@ sub menu_display {
   #
   # The full returned string may be prefixed with %UP%$menu_sep or %EMPTY%$menu_sep
   # followed by the text_labels of all items selected
-  # break this out using split with pattern $menu_sep
+  # break this out using split with pattern $Cmenu::menu_sep
   # For data fields, they will all be returned in order of definition
   # whether edited or not
   for($i=0;$i<$menu_index;$i++) {
@@ -1604,11 +1678,11 @@ sub menu_draw_line {
       # default - text item
       # Display option text
       move($menu_pane,$i,$m_indent);
-      attrset($menu_pane,$menu_att_title);
+      attrset($menu_pane,$menu_attributes{"title"});
       addstr($menu_pane,$menu_sel_label[$m_item]);
       # Highlight first letter
       move($menu_pane,$i,$m_indent);
-      attrset($menu_pane,$menu_att_option);
+      attrset($menu_pane,$menu_attributes{"option"});
       addch($menu_pane,ord(ucfirst($menu_sel_label[$m_item])));
       last MENU_STYLE;
     };
@@ -1616,7 +1690,7 @@ sub menu_draw_line {
     /1/ && do {
       # numbered style
       move($menu_pane,$i,$m_indent);
-      attrset($menu_pane,$menu_att_title);
+      attrset($menu_pane,$menu_attributes{"title"});
       $numtext=$m_item+1;
       if(length($numtext)==1) 
 	{ $numtext=" ".$numtext; }
@@ -1627,12 +1701,12 @@ sub menu_draw_line {
     /2/ && do {
       # radio button
       move($menu_pane,$i,$m_indent+$menu_item_pos-4);
-      attrset($menu_pane,$menu_att_option);
+      attrset($menu_pane,$menu_attributes{"option"});
       addch($menu_pane,"[");
       if($menu_sel_flag[$m_item]>0) {
-	attrset($menu_pane,$menu_att_title);
+	attrset($menu_pane,$menu_attributes{"title"});
 	addch($menu_pane,"X");
-	attrset($menu_pane,$menu_att_option);
+	attrset($menu_pane,$menu_attributes{"option"});
       } else {
 	addch($menu_pane," ");
       }
@@ -1643,12 +1717,12 @@ sub menu_draw_line {
     /3/ && do {
       # check list
       move($menu_pane,$i,$m_indent+$menu_item_pos-4);
-      attrset($menu_pane,$menu_att_option);
+      attrset($menu_pane,$menu_attributes{"option"});
       addch($menu_pane,"(");
       if($menu_sel_flag[$m_item]>0) {
-	attrset($menu_pane,$menu_att_title);
+	attrset($menu_pane,$menu_attributes{"title"});
 	addch($menu_pane,"+");
-	attrset($menu_pane,$menu_att_option);
+	attrset($menu_pane,$menu_attributes{"option"});
       } else {
 	addch($menu_pane," ");
       }
@@ -1660,7 +1734,7 @@ sub menu_draw_line {
       # left align data
       # Display option text
       move($menu_pane,$i,$m_indent+$menu_item_pos-1-length($menu_sel_label[$m_item]));
-      attrset($menu_pane,$menu_att_option);
+      attrset($menu_pane,$menu_attributes{"option"});
       addstr($menu_pane,$menu_sel_label[$m_item]);
       last MENU_STYLE;
     };
@@ -1668,7 +1742,7 @@ sub menu_draw_line {
     /5/ && do {
       # right align data
       move($menu_pane,$i,$m_indent+$menu_item_pos-1-length($menu_sel_label[$m_item]));
-      attrset($menu_pane,$menu_att_option);
+      attrset($menu_pane,$menu_attributes{"option"});
       addstr($menu_pane,$menu_sel_label[$m_item]);
       last MENU_STYLE;
     };
@@ -1676,7 +1750,7 @@ sub menu_draw_line {
     /6/ && do {
       # edit alpha
       move($menu_pane,$i,$m_indent+$menu_item_pos-1-length($menu_sel_label[$m_item]));
-      attrset($menu_pane,$menu_att_option);
+      attrset($menu_pane,$menu_attributes{"option"});
       addstr($menu_pane,$menu_sel_label[$m_item]);
       last MENU_STYLE;
     };
@@ -1684,7 +1758,7 @@ sub menu_draw_line {
     /7/ && do {
       # edit numeric
       move($menu_pane,$i,$m_indent+$menu_item_pos-1-length($menu_sel_label[$m_item]));
-      attrset($menu_pane,$menu_att_option);
+      attrset($menu_pane,$menu_attributes{"option"});
       addstr($menu_pane,$menu_sel_label[$m_item]);
       last MENU_STYLE;
     };
@@ -1692,7 +1766,7 @@ sub menu_draw_line {
     /8/ && do {
       # a type 0 item but with return data coming from fourth refernce
       move($menu_pane,$i,$m_indent+$menu_item_pos-1-length($menu_sel_label[$m_item]));
-      attrset($menu_pane,$menu_att_option);
+      attrset($menu_pane,$menu_attributes{"option"});
       addstr($menu_pane,$menu_sel_label[$m_item]);
       last MENU_STYLE;
     };
@@ -1700,7 +1774,7 @@ sub menu_draw_line {
     /9/ && do {
       # seperator
       move($menu_pane,$i,$m_indent+$menu_item_pos-1-length($menu_sel_label[$m_item]));
-      attrset($menu_pane,$menu_att_option);
+      attrset($menu_pane,$menu_attributes{"option"});
       addstr($menu_pane,$menu_sel_label[$m_item]);
       last MENU_STYLE;
     };
@@ -1709,12 +1783,12 @@ sub menu_draw_line {
   if($menu_sel_style[$m_item]==5) {
     # Display item text right aligned
     move($menu_pane,$i,$m_indent+$menu_item_pos+$max_item_len-length($menu_sel_text[$m_item]));
-    attrset($menu_pane,$menu_att_text);
+    attrset($menu_pane,$menu_attributes{"text"});
     addstr($menu_pane,$menu_sel_text[$m_item]);
   } else {
     # Display item text left aligned (normal)
     move($menu_pane,$i,$m_indent+$menu_item_pos);
-    attrset($menu_pane,$menu_att_text);
+    attrset($menu_pane,$menu_attributes{"text"});
     addstr($menu_pane,$menu_sel_text[$m_item]);
   }
 }
@@ -1745,11 +1819,11 @@ sub menu_draw_active {
       # default - text item
       # Display option text
       move($menu_pane,$i,$m_indent);
-      attrset($menu_pane,$menu_att_rtitle);
+      attrset($menu_pane,$menu_attributes{"rtitle"});
       addstr($menu_pane,$menu_sel_label[$menu_cur_option]);
       # Highlight first letter
       move($menu_pane,$i,$m_indent);
-      attrset($menu_pane,$menu_att_roption);
+      attrset($menu_pane,$menu_attributes{"roption"});
       addch($menu_pane,ord(ucfirst($menu_sel_label[$m_item])));
       last MENU_STYLE;
     };
@@ -1757,7 +1831,7 @@ sub menu_draw_active {
     /1/ && do {
       # numbered style
       move($menu_pane,$i,$m_indent);
-      attrset($menu_pane,$menu_att_rtitle);
+      attrset($menu_pane,$menu_attributes{"rtitle"});
       $numtext=$m_item+1;
       if(length($numtext)==1) 
 	{ $numtext=" ".$numtext; }
@@ -1768,7 +1842,7 @@ sub menu_draw_active {
     /2/ && do {
       # radio button
       move($menu_pane,$i,$m_indent+$menu_item_pos-4);
-      attrset($menu_pane,$menu_att_rtitle);
+      attrset($menu_pane,$menu_attributes{"rtitle"});
       if($menu_sel_flag[$m_item]>0) {
 	$numtext="[X]";
       } else {
@@ -1781,12 +1855,12 @@ sub menu_draw_active {
     /3/ && do {
       # check list
       move($menu_pane,$i,$m_indent+$menu_item_pos-4);
-      attrset($menu_pane,$menu_att_roption);
+      attrset($menu_pane,$menu_attributes{"roption"});
       addch($menu_pane,"(");
       if($menu_sel_flag[$m_item]>0) {
-	attrset($menu_pane,$menu_att_rtitle);
+	attrset($menu_pane,$menu_attributes{"rtitle"});
 	addch($menu_pane,"+");
-	attrset($menu_pane,$menu_att_roption);
+	attrset($menu_pane,$menu_attributes{"roption"});
       } else {
 	addch($menu_pane," ");
       }
@@ -1797,7 +1871,7 @@ sub menu_draw_active {
     /4/ && do {
       # left data
       move($menu_pane,$i,$m_indent+$menu_item_pos-1-length($menu_sel_label[$m_item]));
-      attrset($menu_pane,$menu_att_option|A_BOLD);
+      attrset($menu_pane,$menu_attributes{"rtitle"});
       addstr($menu_pane,$menu_sel_label[$m_item]);
       last MENU_STYLE;
     };
@@ -1805,7 +1879,7 @@ sub menu_draw_active {
     /5/ && do {
       # right align data
       move($menu_pane,$i,$m_indent+$menu_item_pos-1-length($menu_sel_label[$m_item]));
-      attrset($menu_pane,$menu_att_option|A_BOLD);
+      attrset($menu_pane,$menu_attributes{"rtitle"});
       addstr($menu_pane,$menu_sel_label[$m_item]);
       last MENU_STYLE;
     };
@@ -1813,7 +1887,7 @@ sub menu_draw_active {
     /6/ && do {
       # edit alpha
       move($menu_pane,$i,$m_indent+$menu_item_pos-1-length($menu_sel_label[$m_item]));
-      attrset($menu_pane,$menu_att_option|A_BOLD);
+      attrset($menu_pane,$menu_attributes{"rtitle"});
       addstr($menu_pane,$menu_sel_label[$m_item]);
       last MENU_STYLE;
     };
@@ -1821,7 +1895,7 @@ sub menu_draw_active {
     /7/ && do {
       # edit numeric
       move($menu_pane,$i,$m_indent+$menu_item_pos-1-length($menu_sel_label[$m_item]));
-      attrset($menu_pane,$menu_att_option|A_BOLD);
+      attrset($menu_pane,$menu_attributes{"rtitle"});
       addstr($menu_pane,$menu_sel_label[$m_item]);
       last MENU_STYLE;
     };
@@ -1830,7 +1904,7 @@ sub menu_draw_active {
       # 
       # Display option text
       move($menu_pane,$i,$m_indent+$menu_item_pos-1-length($menu_sel_label[$m_item]));
-      attrset($menu_pane,$menu_att_option|A_BOLD);
+      attrset($menu_pane,$menu_attributes{"rtitle"});
       addstr($menu_pane,$menu_sel_label[$m_item]);
       last MENU_STYLE;
     };
@@ -1843,12 +1917,12 @@ sub menu_draw_active {
   if($menu_sel_style[$m_item]==5) {
     # Display item text right aligned
     move($menu_pane,$i,$m_indent+$menu_item_pos+$max_item_len-length($menu_sel_text[$m_item]));
-    attrset($menu_pane,$menu_att_rtext);
+    attrset($menu_pane,$menu_attributes{"rtext"});
     addstr($menu_pane,$menu_sel_text[$m_item]);
   } else {
     # Display item text
     move($menu_pane,$i,$m_indent+$menu_item_pos);
-    attrset($menu_pane,$menu_att_rtext);
+    attrset($menu_pane,$menu_attributes{"rtext"});
     addstr($menu_pane,$menu_sel_text[$menu_cur_option]);
   }
 }
@@ -1868,7 +1942,7 @@ sub menu_draw_active {
 sub menu_create_pane {
   # Initialise menu pane and control variables
   $menu_pane=newwin($menu_pane_lines-2,$menu_pane_cols-2,$menu_pane_y+1,$menu_pane_x+1);
-  bkgd($menu_pane,$menu_att_text);
+  bkgd($menu_pane,$menu_attributes{"text"});
   clear($menu_pane);
   idlok($menu_pane,1);
   scrollok($menu_pane,1);
@@ -2047,7 +2121,7 @@ sub menu_edit {
   $field=$menu_sel_text[$m_item];
   if(!$field) { $field=""; }         # Make sure something is defined
   $menu_field=newwin(1,$item_len,$item_line,$item_col);
-  bkgd($menu_field,$menu_att_backdrop);
+  bkgd($menu_field,$menu_attributes{"advice"});
 
   # curses cookery
   curs_set(1);            # turn the cursor off
@@ -2091,6 +2165,12 @@ sub menu_edit {
 	/UP/ && do {		# Up arrow
 	  $action="ACCEPT";
 	  redo EDITKEY;
+	};
+	/LYNXL/ && do {		# Left arrow
+	  $action="LEFT";
+	};
+	/LYNXR/ && do {		# Right arrow
+	  $action="RITE";
 	};
 	/LEFT/ && do {		# Left arrow
 	  $pos--;
@@ -2361,14 +2441,14 @@ sub menu_hot_button {
   
   # Pick out the capital letter
   $cap=ord(uc($text));
-  &attrset($menu_inlay,$menu_att_rtext);
+  &attrset($menu_inlay,$menu_attributes{"rtext"});
   &move($menu_inlay,$menu_inlay_lines-2,$h_indent);
   addstr($menu_inlay,"<");
-  &attrset($menu_inlay,$menu_att_rtitle);
+  &attrset($menu_inlay,$menu_attributes{"rtitle"});
   addstr($menu_inlay,$text);
-  &attrset($menu_inlay,$menu_att_rtext);
+  &attrset($menu_inlay,$menu_attributes{"rtext"});
   addstr($menu_inlay,">");
-  &attrset($menu_inlay,$menu_att_roption);
+  &attrset($menu_inlay,$menu_attributes{"roption"});
   &move($menu_inlay,$menu_inlay_lines-2,$h_indent+1);
   addch($menu_inlay,$cap);
 }
@@ -2377,7 +2457,7 @@ sub menu_hot_button {
 sub menu_draw_button {
   my ($h_indent,$text) = @_;
 
-  &attrset($menu_inlay,$menu_att_button);
+  &attrset($menu_inlay,$menu_attributes{"button"});
   &move($menu_inlay,$menu_inlay_lines-2,$h_indent);
   addstr($menu_inlay,"<");
   addstr($menu_inlay,$text);
@@ -2434,7 +2514,7 @@ sub menu_popup {
     };
     # Initialise menu pane and control variables
     $menu_popup=newwin(3,$menu_screen_cols-6,($menu_screen_lines/2)-2,3);
-    bkgd($menu_popup,$menu_att_popup);
+    bkgd($menu_popup,$menu_attributes{"popup"});
     clear($menu_popup);
     &border($menu_popup,0,0,0,0,0,0,0,0);
     move($menu_popup,0,($menu_screen_cols-8-length($ptitle))/2);
@@ -2489,13 +2569,13 @@ sub menu_show {
   if(!$colour) { $colour="ERROR"; }
  SET_COLOR: for ($colour) {
     /WARN/ && do {
-      $attributes=$menu_att_warn;
+      $attributes=$menu_attributes{"warn"};
     };
     /HELP/ && do {
-      $attributes=$menu_att_help;
+      $attributes=$menu_attributes{"help"};
     };
     /ERROR/ && do {
-      $attributes=$menu_att_error;
+      $attributes=$menu_attributes{"error"};
     };
   };
 
@@ -2631,7 +2711,7 @@ sub menu_show {
 1;
 
 __END__
-# Below is the stub of documentation for your module. You better edit it!
+# Below is the stub of documentation for the module.
 
 =head1 NAME
 
@@ -2712,8 +2792,8 @@ Each line of a menu is created using this call.
   $item_text    The text to be displayed as the menu option
   $item_label   A text label which may be displayed beside
                 the text
-  $item_style   How the menu option should be drawn or nehave
-                Should be a number form 0 to 9
+  $item_style   How the menu option should be drawn or behave
+                Should be a number from 0 to 9
        0  (default) preceeds the text with a text label
           the label is returned if the item is selected
        1  use number instead of a text label; numbered in
@@ -2732,12 +2812,14 @@ Each line of a menu is created using this call.
        8  displayed as for 4 except an alternative reference
           (not the text label) is returned when selected
        9  spacer; leaves a space in the menu
+
    $item_data    Some item styles need extra information
        2  which item in a radio list is already active
        3  item in a check list already selected
        6  specifies the return value for the field
        7  as for 6
        8  as for 6
+
    $item pos     For edit fields only (6 + 7); specifies the
                  maximum length of a data field and decimal 
                  precision for numbers. Passed as a space
@@ -2747,7 +2829,7 @@ Each line of a menu is created using this call.
 =head2 menu_display
 
 Actually performs the menu display and navigation. Returns 
-information relevant to the action selected. Accepts 3 parametrs;
+information relevant to the action selected. Accepts 2 parametrs;
 
   $menu_prompt   Displayed at the foot of the screen as advice
   $menu_start    Which item should be active from the start
@@ -2774,7 +2856,7 @@ Since any type of item can be included in a menu, return values may be
 equally complex. For complex return values, tokens can be split out using
 a command fragment such as
 
- chop($return_value=&menu_display("Menu Prompt","Start Menu Item"));
+ chop($return_value=&menu_display("Menu Prompt",$start_on_menu_item));
  @selection=split(/$Cmenu::menu_sep/,$return_value);
  for($loop=1;$loop<=$#selection;$i++) {
    # deal with each token
@@ -2783,18 +2865,20 @@ a command fragment such as
    ...
    }
 
-The first token returned is usually the menu item which was active when the
-menu was closed; this may not always be a valid item if the menu has been aborted
+The first token returned ($selection[0]) is usually the key pressed to close the
+menu was closed; this will rarely be a valid menu item - check it to make sure 
+an "abort" was not requested.
 
 =head2 menu_button_set
 
-Each menu has up to 3 buttons which can be applied. Usually these give
+Each menu has up to 3 buttons which can be activated. Usually these give
 options to either Accept a menu item or Abort the menu prematurely. A Help
 facility may also be called.
 
-This routine switches buttons on and off and specifies the text label of the button
-(button actions cannot be altered yielding "ACCEPT", "HELP" or "EXIT"). The <TAB> key
-traverses these buttons.
+This routine switches buttons on and off and, specifies the text label of the button
+(button actions cannot be altered yielding "ACCEPT", "HELP" or "EXIT" although your 
+scripts can interret these responses however you wish). The <TAB> key
+traverses the buttons bar.
 
 Parameters for this routine are;
   $button  a number 1, 2 or 3 specifying which button is to be set
@@ -2802,10 +2886,11 @@ Parameters for this routine are;
 
 =head2 menu_popup
 
-Allows a simple screen to popped up if a lengthy process has been launched. The popup
+Allows a simple screen to pop-up if a lengthy process has been launched. The popup
 has only one line of text to give an indication of what the system is doing; 
   To start a popup - call with $message
   To close a popup - call with NO message
+Remember to close the popup or the menu display will get confused.
 
 =head2 menu_show
 

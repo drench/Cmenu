@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# Last updated Time-stamp: <01/04/07 18:52:05 devel>
+# Last updated Time-stamp: <01/10/20 22:40:43 devel>
 #
 # Cmenu Demo
 # ---------------
@@ -60,7 +60,7 @@ $data[14]=0;$label[14]="Milk";
 # -------------------------------------------------
 
 # Setup the screen to handle curses and colour
-&menu_initialise("Cmenu Demonstration","Copyright andy\@moil.demon.co.uk");
+menu_initialise("Cmenu Demonstration","Copyright andy\@moil.demon.co.uk");
 $top_item=0;           # used to remember the position of the menu selector
 
 # ---< main menu >----------------------------------------------
@@ -370,11 +370,11 @@ sub menu07 {
   &menu_button_set(1,"Continue");
   &menu_button_set(2,"");
   &menu_button_set(3,"");
+  @x=split(/$Cmenu::menu_sep/,$sel);
   if($#x==0) {
     &menu_show("No fields Changed","No fields have been changed",ERROR);
   } else {
     $text="Text fields have been amended\n";
-    @x=split(/$Cmenu::menu_sep/,$sel);
     for($i=1;$i<=$#x;$i++) {
       # Breakout field label and new data
       ($field,$newdata)=split(/$Cmenu::menu_sepn/,$x[$i]);
@@ -434,9 +434,6 @@ sub menu09 {
   }
   $sel=&menu_display("Choose an Item");
   chop($sel);
-#  &menu_button_set(1,"Continue");
-#  &menu_button_set(2,"");
-#  &menu_button_set(3,"");
   if(($sel eq "%EMPTY%")||($sel eq "%UP%")) {
     &menu_show("Results","Menu type 8 returns an offset marker for the menu item selected rather than the label used in other types. This is useful for displaying data from databases where the label may be used to describe the text while the offset is a pointer to a record in a database\nIn this case you have pressed the <EXIT> function key which returns no data!",HELP);
   } else {

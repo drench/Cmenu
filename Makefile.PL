@@ -1,5 +1,5 @@
 
-# $Id: Makefile.PL,v 5.0.2.1 2001/02/13 15:45:57 devel Exp $
+# $Id: Makefile.PL,v 1.1.1.1 2001/04/07 18:43:45 devel Exp $
 
 use ExtUtils::MakeMaker;
 use strict;

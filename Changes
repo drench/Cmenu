@@ -1,7 +1,7 @@
 #****************************************************************************
 # Cmenu.pm -- Perl Menu Support Facility 
 #
-# Last updated Time-stamp: <01/04/07 18:14:07 devel> 
+# Last updated Time-stamp: <01/10/20 22:32:56 devel> 
 #
 #
 # Date:	Version 1.0 -- May, 1992 -- Original version 
@@ -26,7 +26,7 @@
 #       Version 4.0 -- Feb, 1997 -- Converted to "pm" module, highlighted
 #					selection cursor pref, Multiple-column
 #					menus pref, bug fixes
-#       Version 5.0 -- Jan, 2001 -- Complete re-write using Curses code and dialog
+#   Version 5.0 -- Jan, 2001 -- Complete re-write using Curses code and dialog
 #					'look and feel'. Simplified sub-calls and 
 #					colour support. Preferences stored in file.
 #	Version 5.1 -- Jan. 2001 -- Put check on edit field length to stop
@@ -45,7 +45,11 @@
 #				    Fixed numeric field edit with better regex
 #	Version 1.0 -- Apr. 2001 -- Revised for CPAN conventions and minor bugs/typos
 #					
-#					
-#					
-#					
+#	Version 1.1 -- Oct. 2001 -- Several changes to configuration file processing
+#					full control of colour rendering
+#					better mono rendering
+#					added full set of terminal attributes
+#					explicit Lynx style motion - switchable
+#					hack25 to get an extra line on short displays (esp. mono)
+#					changed some rendering details (removed hard-codings)
 #					
