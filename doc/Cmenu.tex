@@ -1,0 +1,258 @@
+\documentclass[a4paper,abstracton]{article}
+% 
+% Last updated Time-stamp: <01/04/07 19:36:02 devel>
+%
+
+%%% Preamble
+
+%% Adjust top/bottom margins
+%\addtolength{\voffset}{-3cm}
+%\addtolength{\textheight}{6cm}
+
+%% Adjust left/right margins
+%\addtolength{\hoffset}{-3cm}
+%\addtolength{\textwidth}{6cm}
+
+%% no indent at para start and skip more at para breaks
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1ex plus 0.5ex minus 0.2ex}
+
+%% Settinsg for Maths
+%% setup to use pound signs and other stuff
+\usepackage[latin1]{inputenc}
+%% stuff for AMS maths
+%\usepackage{amsmath}
+
+%% Heading styles
+%% Use section for main grouping
+%% Use subsection for detailed topic
+\pagestyle{headings}
+
+%\extratitle{Extra title}
+%\titlehead{Titlehead}
+%\subject{Subject}
+\title{Cmenu}
+\author{Andy Ferguson\\andy@moil.demon.co.uk}
+%\date{}
+%\publishers{}
+%\dedication{}
+%\uppertitleback{}
+%\lowertitleback{}
+
+\begin{document}
+
+%%%% Page Heading and title of Document
+\maketitle
+\abstract{Cmenu is a module for perl v5 offering menuing facilities typically offered by the command-line utility \textit{dialog}. Unlike \textit{dialog} it is not meant to be called from the command-line, instead it provides a number of menuing and dialogue functions which can be include in perl scripts.
+
+This document describes how the module should be installed and how it can be used in perl scripts.}
+
+\tableofcontents
+
+%%%% Body starts here
+\section{Installation}
+Installation of the Module should be pretty painless.
+\begin{enumerate}
+\item Check the source for hacks which may be necessary for your Platform. In the \textit{menu\_initialise} routine, we try to get some terminal characteristics direct from the terminal; there seem to be different methods for different platforms. Check which method works for you.
+
+The module has only been tested under Linux and the default is set for it; the other methods my be totally unnecessary now with Curses but I left these in from \textbf{perlmenu}.
+\item Run \textbf{perl Makefile.PL}. This performs a few checks
+\item Run \textbf{make}. This creates a tree ready for installation
+\item Run \textbf{demo}. This demonstration script should run before the Module has been installed; use it as a test for now.
+\item Run \textbf{make install} The Module should now be available for your own scripts.
+\end{enumerate}
+
+\section{How to use Cmenu}
+The Module provides a few global functions that can be called by user scripts. Before these become available you must include the command
+
+\textbf{use Cmenu;}
+
+in your script. The Module also requires the Curses and Text::Wrap modules though these should be loaded by \textit{Cmenu} for you.
+
+Details of using each function is explained fully in the appendix. An overview is provided here;
+
+\subsection{General operation}
+The typical sequence of using the Cmenu functions is;
+\begin{enumerate}
+\item Initialise the Module and Curses by calling \textbf{menu\_initialise}. This activates Curses and sets up module variables. Once this has been called, Curses is active; this means screen I/O should only be performed through Curses functions. If your script bombs before closing Curses down your terminal may well be scrambled - run \textbf{reset} to restore it to sanity.
+\item Create a new menu with the \textbf{menu\_init} function.
+\item Create one or more menu items with the \textit{menu\_item} function. This is the most powerful function as it allows you control over the functioning and appearance of each menu item.
+\item Display the menu by calling \textbf{menu\_display}. This routine performs all menu navigation, field editing, help displays and other stuff. Eventually pressing an exit key will end this routine when the results of the menu navigation will be returned to your script
+\item Your script should then react to the data returned by the menu. Most of the time this processing will be fairly trivial but if you built a complex menu with lists and data fields for editing, the return value may be quite complicated to deal with
+\item You can continue this process until you no longer need the module when \textbf{menu\_terminate} should be called. This will closedown Curses so that screen I/O will return to normal. You can continue user interaction if you wish but none of the Cmenu or Curses functions should be used.
+\end{enumerate}
+
+
+\appendix
+\section{Sample Script}
+The following script shows how a simple menu can be created. This is provided as a quick guide to creating user dialogs. 
+
+A more comprehensive example script is provided with the distribution as a test script to verify the correct installation of the module; it also serves as a demonstrates of all the features provided by the module. This demonstration script can be found in the installation directory; it will not be installed to your system during installation of the module.
+
+In the following script, elements presented in \textbf{bold} are functions or variables provided by Cmenu, elements in \textit{italics} are items provided by the user, all other text are generic perl instructions.
+
+\begin{center}
+\textbf{Sample Script\\}
+\begin{tabular}{rll}
+\hline
+1&\#!/usr/bin/perl\\
+2&\\
+3&\# Sample Cmenu script\\
+4&\\
+5&\textbf{menu\_initialise(\textit{Cmenu Sample Script});}\\
+6&\\
+7&\textbf{menu\_init();}\\
+8&\\
+9&\textbf{\&menu\_item();}\\
+10&\textbf{\&menu\_item();}\\
+11&\\
+12&\$sel $=$ \textbf{\&menu\_display();}\\
+13&\\
+14&chop(\$sel);\\
+15&\\
+\hline
+\end{tabular}
+\end{center}
+
+
+\section{Function Reference}
+This section provides a comprehensive list of user functions provided by the module explaining their use and calling parameters.
+
+\subsection{User Functions}
+These functions are designed to be called by user scripts.
+\begin{description}
+\item [menu\_button\_set] enables or disables buttons; sets text on button
+\item [menu\_display] call to activate a menu and return a selection
+\item [menu\_init] initialise a new menu structure
+\item [menu\_initialise] initialise the module; called at the beginning of a script once only
+\item [menu\_item] define a menu option
+\item [menu\_popup] popup a display while processing is occurring
+\item [menu\_show] splash data to the screen
+\item [menu\_terminate] terminate all Curse and menuing structures; called on exit from script
+\end{description}
+
+\subsection{menu\_initialise}
+This takes no parameters. Its job is to create a Curses environment and configure Cmenu to operate effectively with your terminal providing some default values for variables.
+
+\subsection{menu\_init}
+Create a menu structure.
+
+\subsection{menu\_item}
+Creates a menu item. 
+
+\subsection{menu\_display} 
+Activate a menu and let Cmenu do the menu navigation. This call will return user selections depending on the type of menu items included in the menu. Dealing with the return value can be quite complicated for complex menus.
+
+It is normally called as
+
+\begin{center}
+\$sel = \&menu\_display(``User prompt'',start\_item);
+\end{center} 
+
+\begin{description} 
+\item [\$sel] This will contain user responses; it will always be terminated by separator character so chop it off with
+\begin{center}
+chop(\$sel);
+\end{center}
+Generally this return value will contain a list of values which need further processing (see below).
+\item [User prompt] (mandatory) a string which will be displayed at the foot of the screen
+\item [start\_item] (optional) which menu option should be highlighted at the start. This allows your script to keep track of where it was in a menu. If it is not provided, the first item in a menu will be highlighted.
+\end{description}
+
+\subsubsection{Processing return Values}
+
+To help distinguish different data elements returned from the menu, two variables are used
+\begin{description}
+\item [\$Cmenu::menu\_sep] (this can be accessed and even set by user scripts) it separates individual item responses. This is most appropriate to check lists and data fields. 
+
+\item [\$Cmenu::menu\_sepn] (this can be accessed and even set by user scripts). It defaults to the tilde (\textbf{~}) character. It is used to separate elements with a data field value.
+\end{description}
+
+Simple menu options will only return a single value indicating either a function key pressed or an item selected. For such menus doing \textbf{chop(\$sel)} will be enough to pick out the return value. Possible values might be
+
+\begin{description}
+\item [``\%EMPTY\%''] the \textit{EXIT} function has been selected. This is usually taken to mean an immediate exit from all menus or an abort from an editing spree.
+\item [``\%UP\%''] the \textit{QUIT} function has been selected. This is usually taken to mean a menu sequence has been terminated, perhaps an editing session accepted or the user wishes to back-track through some menus.
+\item [``YES''] given from \textbf{menu\_show} only - indicates a positive response from a confirmation screen
+\item [``NO''] given by \textbf{menu\_show} only - indicates a negative response from a confirmation screen
+\item [variable text field] a menu selection has been made by text-label (see menu\_item)
+\item [variable number] a menu selection has been made by value (see menu\_item)
+\item [variable array] a complex menu response has been completed; this needs further processing
+\end{description}
+
+\subsection{Complex Return Values}
+Dealing with complex return values occur when menu items including radio lists, check lists and editing data fields. Essentially these type of items create multi-value responses. To do this, Cmenu returns an array of values separated by separation characters. 
+\begin{center}
+@values = split(/\$Cmenu::menu\_sep/,\$sel)
+\end{center}
+will perform the first split. The array of values will contain the function key or menu item pressed when the menu was exited. Other values will correspond to specific menu items. For radio and check list, this will be a simple list of which items had been selected. When dealing with such lists, Cmenu does not attempt to report \textit{unselected} items - these should be processed independently - Cmenu will only returns items which have been checked.
+
+To deal with data fields, a field identifier and the field contents will be returned as a data pair. These can be separated with the following command;
+\begin{center}
+(\$identifier,\$contents) = split(\$Cmenu::menu\_sepn/,\$value[1]);
+\end{center}
+Notice that \$value[1] is one of the elements of the first array. Normally, values returned in this way will be ordered as they were defined with menu\item calls but hsi is not guaranteed. The \$identifier is the value given with the \$menu\_item call.
+
+Where this return value can get really messy is when a complex data entry menu has a combination of regular, alpha, numeric, radio and check list menu items. You will need to take care that you identify all the parts you need for each item. When in doubt or to aid debugging, doing a simple call to menu\_show can help
+\begin{center}
+\&menu\_show(``Data Response'',\$sel,''HELP'');
+\end{center}
+This will show what Cmenu is returning from a particular call.
+
+\subsection{menu\_popup}
+This is an extra routine which you may never need. It provides a way of displaying information while a process is being performed rather than the script stalling silently. It is called in two forms; first to display the popup and then to remove it;
+\begin{description}
+\item [menu\_popup(\$header,\$message)] This creates a popup which overlays the current menu. A very small window is opened with a drawn border and \textbf{\$header} displayed in the centre of the top line. The \textbf{\$message} is displayed in the body of the window on a single line (no word wrap is performed on this text - make sure it is only one line long!)./
+
+After calling this, your script should go off and busy itself until it ready to talk to the user again
+\item [menu\_item()] call the same routine with no parameters and the Popup menu will be removed.
+\end{description}
+
+\subsection{menu\_show(\$title,\$message,\$style)} 
+This provides for plash screens to be shown to the user either reporting difficulties, errors, providing help or asking for confirmation of responses. The routine draws a full window covering the normal menu space (not the backdrop). It accepts three parameters;
+\begin{description}
+\item [\$title] Gives the window a title included in the border
+\item [\$message] provides the actual text message. If this can be fitted onto a single line, it will be centred in the screen. If the text exceeds a single line width, it will be passed through \textbf{Text::Wrap} for formating. \textbf{Text::Wrap} breaks lines at word-boundaries (spaces) and also acknowledges \textbf{\ n} as a forced new-line character. All lines are left-justified and ragged on the right.
+\item [\$style] using different colours, a different meaning can be associated with splash screens. Also a simple button bar will be drawn for each type so that users can confirm or reject options as required. Responses from menu\_show will be either ``YES'' or ``NO''
+\begin{description}
+\item [``HELP''] uses the help colour scheme (brown on grey); also automatically provides a single button.
+\item [``WARN''] uses the warning colour scheme as used by the popup screens (defaults to yellow on green). User definable button bar available (see button\_set).
+\item [``ERROR''] uses the error colour scheme (white on red) with an active button bar.
+\end{description}
+Splash screen are exited by pressing any normal key. Usually function keys are rejected.
+\end{description}
+
+\subsection{Internal Functions}
+These are the internal functions of the module; these should not be called by user scripts.
+\begin{description}
+\item [menu\_advice] displays a short message at the foot of the screen
+\item [menu\_button\_bar] creates a button bar
+\item [menu\_create\_pane] creates the menu display
+\item [menu\_draw\_active] draws the active menu option
+\item [menu\_draw\_button] draws a button
+\item [menu\_draw\_inlay] draws the backdrop
+\item [menu\_draw\_line] draws an inactive menu option
+\item [menu\_draw\_pane] draws the menu pane
+\item [menu\_draw\_window] draws the menu window
+\item [menu\_edit] edit a field
+\item [menu\_hot\_button] report which button is hot
+\item [menu\_key\_seq] get input from the keyboard
+\item [menu\_navigate] navigate through a menu
+\item [menu\_preferences] load modules preferences from file
+\item [menu\_redraw\_backdrop] redraw the backdrop
+\item [menu\_refresh] redraw the whole screen especially after resizing a terminal window
+\end{description}
+
+
+
+\section{Application Preferences}
+Cmenu provides a facility to read a \textit{preferences} file to configure a common look-and-feel for all your applications. Preferences can be setup for all users (using file \textit{/etc/perldialogrc}) or individual users (using \textit{\~/.perldiaogrc}). Definable preferences include;
+\begin{description}
+\item [colour] the colours to be used in all screen renditions
+\item [text] standard text elements for overall system descriptions (these only appear in the menu backdrop).
+\end{description}
+A heavily commented sample preferences files is included with the distribution. The preferences file is strictly structured; not following the prescribed layout may corrupt display elements orclean deactivate certain features.
+%%%% Body ends here
+
+\end{document}
+

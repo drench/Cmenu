@@ -1,0 +1,16 @@
+\contentsline {section}{\numberline {1}Installation}{1}
+\contentsline {section}{\numberline {2}How to use Cmenu}{2}
+\contentsline {subsection}{\numberline {2.1}General operation}{2}
+\contentsline {section}{\numberline {A}Sample Script}{3}
+\contentsline {section}{\numberline {B}Function Reference}{3}
+\contentsline {subsection}{\numberline {B.1}User Functions}{3}
+\contentsline {subsection}{\numberline {B.2}menu\_initialise}{4}
+\contentsline {subsection}{\numberline {B.3}menu\_init}{4}
+\contentsline {subsection}{\numberline {B.4}menu\_item}{4}
+\contentsline {subsection}{\numberline {B.5}menu\_display}{4}
+\contentsline {subsubsection}{\numberline {B.5.1}Processing return Values}{4}
+\contentsline {subsection}{\numberline {B.6}Complex Return Values}{5}
+\contentsline {subsection}{\numberline {B.7}menu\_popup}{5}
+\contentsline {subsection}{\numberline {B.8}menu\_show(\$title,\$message,\$style)}{6}
+\contentsline {subsection}{\numberline {B.9}Internal Functions}{6}
+\contentsline {section}{\numberline {C}Application Preferences}{7}

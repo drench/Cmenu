@@ -1,0 +1,106 @@
+#:Configuration file for Cmenu
+#:Comments are hash and colon #:
+#:
+#: Help file root dir
+#: Don't forget trailing slash
+H:helpfile:::
+#H:helpfile::/etc/Cmenu/:
+#:H:helpfile::./:
+#:
+#:Screen colours
+#:===============================================
+#:Specify colours for menus using these numebrs
+#:Black = 0 Red     = 1 Green = 2 Brown = 3
+#:Blue  = 4 Magenta = 5 Cyan  = 6 White = 7
+#:
+#:Specify colours in this format
+#:Colour field : field number : colour number
+#:Colour field are for readability only
+#:These are the defaults
+C:backdrop:0:4
+C:foredrop:1:6
+C:inlay   :2:7
+C:reverse :3:4
+C:text    :4:0
+C:title   :5:3
+C:option  :6:1
+C:button  :7:7
+C:scroll  :8:2
+#:
+#:Key sequences
+#:================================================
+#:Specify a keysequence with a textual description (not used)
+#:followed by : key number : interpretation string
+#:Interpretation strings are
+#:Cursor movement   UP   DOWN LEFT RITE
+#:                  PREV NEXT HOME END
+#:Deleting          BS   DEL
+#:Buffer            KILL YANK BUFF
+#:Toggles           INS  HELP
+#:Tabbing           TAB  BTAB
+#:Return            RET  EXIT QUIT
+#:Do nothing        NOP
+#:------------------------------------------------
+#:Key sequences are terminal specific and provided
+#:by curses - do not change them - but you can
+#:change the action they perform....
+#:Key sequence          :##:CODE
+#:----------------------:##:----
+# These are the default control sequences
+# --------
+# ANSI sequences for xterm
+# --------
+#K:Ansi cursor-up     ^[[A :[A:UP
+#K:Ansi cursor-down   ^[[B :[B:DOWN
+#K:Ansi cursor-right  ^[[C :[C:RITE
+#K:Ansi cursor-left   ^[[D :[D:LEFT
+#K:Ansi guess         ^[[E :[E:PREV
+#K:Ansi end key       ^[[F :[F:END
+#K:Ansi guess         ^[[G :[G:NEXT
+#K:Ansi home key      ^[[H :[H:HOME
+# --------
+# Emacs control sequences
+# --------
+#K:begin of line         ^A::HOME
+#K:end of line           ^E::END
+#K:next char             ^F::RITE
+#K:prev char             ^B::LEFT
+#K:next field            ^N::TAB
+#K:prev field            ^P::BACK
+#K:redraw screen         ^L::REFS
+#K:delete right          ^D::DEL
+#K:kill line             ^K::KILL
+#K:yank/paste buffer     ^V::YANK
+#K:copy and kill to buff ^X::BUFF
+#K:tab                   ^I:	:TAB
+
+# --------
+# These are the default Curses return values
+# --------
+#K:break                   :257:EXIT
+#K:down arrow              :258:DOWN
+#K:up arrow                :259:UP
+#K:left arrow              :260:LEFT
+#K:right arrow             :261:RITE
+#K:home                    :262:HOME
+#K:backspace               :263:BS
+#K:Func key 1              :265:HELP
+#K:Func key 2              :266:NOP
+#K:Func key 3              :267:NOP
+#K:Func key 4              :268:NOP
+#K:Func key 5              :269:NOP
+#K:Func key 6              :270:NOP
+#K:Func key 7              :271:NOP
+#K:Func key 8              :272:QUIT
+#K:Func key 9              :273:NOP
+#K:Func key 10             :274:NOP
+#K:Func key 11             :275:NOP
+#K:Func key 12             :276:EXIT
+#K:page up                 :339:PREV
+#K:page down               :338:NEXT
+#K:insert toggle           :331:INS
+#K:delete                  :330:DEL
+#K:enter key               :343:RET
+#K:shifted tab             :353:BTAB
+#K:end                     :360:END
+
