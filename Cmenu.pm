@@ -604,7 +604,7 @@ sub menu_set_colours {
 	$i=1;
 	foreach $key(keys(%menu_attributes)) {
 	  ($x,$y,$z)=split(/\./,$menu_attributes{$key});
-	  init_pair($i,$menu_colour[$x],$menu_colour[$y] );
+	  cmenu_init_pair($i,$menu_colour[$x],$menu_colour[$y] );
 	  $menu_attributes{$key}=COLOR_PAIR($i)|menu_set_attributes($z);
 	  $i++;
 	}
@@ -1679,11 +1679,21 @@ sub menu_draw_line {
       # Display option text
       move($menu_pane,$i,$m_indent);
       attrset($menu_pane,$menu_attributes{"title"});
-      addstr($menu_pane,$menu_sel_label[$m_item]);
-      # Highlight first letter
-      move($menu_pane,$i,$m_indent);
-      attrset($menu_pane,$menu_attributes{"option"});
-      addch($menu_pane,ord(ucfirst($menu_sel_label[$m_item])));
+
+      my $label = $menu_sel_label[$m_item];
+      if (ref($label) eq 'HASH') {
+        my $n = create_color_pair($label->{fg}, $label->{bg});
+        attrset($menu_pane, COLOR_PAIR($n));
+        $label = ucfirst($label->{text});
+        addstr($menu_pane, $label);
+      }
+      else {
+        addstr($menu_pane, $label);
+        # Highlight first letter
+        move($menu_pane,$i,$m_indent);
+        attrset($menu_pane,$menu_attributes{"option"});
+        addch($menu_pane,ord(ucfirst($label)));
+      }
       last MENU_STYLE;
     };
 
@@ -1820,11 +1830,18 @@ sub menu_draw_active {
       # Display option text
       move($menu_pane,$i,$m_indent);
       attrset($menu_pane,$menu_attributes{"rtitle"});
-      addstr($menu_pane,$menu_sel_label[$menu_cur_option]);
+
+      my $label = $menu_sel_label[$menu_cur_option];
+      if (ref($label) eq 'HASH') {
+        $label = ucfirst($label->{text});
+      }
+
+      addstr($menu_pane, $label);
       # Highlight first letter
+
       move($menu_pane,$i,$m_indent);
       attrset($menu_pane,$menu_attributes{"roption"});
-      addch($menu_pane,ord(ucfirst($menu_sel_label[$m_item])));
+      addch($menu_pane,ord(ucfirst($label)));
       last MENU_STYLE;
     };
 
@@ -2701,6 +2718,37 @@ sub menu_show {
     &menu_redraw_backdrop();
   }
   $work;
+}
+
+my %color_pair_index;
+my @color_pairs;
+
+sub cmenu_init_pair {
+    my($n, $fg, $bg) = @_;
+    $color_pairs[$n] = [$fg, $bg];
+    $color_pair_index{"$fg.$bg"} = $n;
+    init_pair($n, $fg, $bg);
+}
+
+sub create_color_pair {
+    my ($fg, $bg) = @_;
+
+    my $n = $color_pair_index{"$fg.$bg"};
+    if (defined $n) {
+        return $n;
+    }
+
+    my $i = 1;
+    while ($i < 256) {
+        next if $color_pairs[$i];
+        cmenu_init_pair($i, $fg, $bg);
+        return $i;
+    }
+    continue {
+        ++$i;
+    }
+
+    die 'Unable to create color pair';
 }
 
 
