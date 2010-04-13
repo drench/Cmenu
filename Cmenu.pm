@@ -1681,7 +1681,7 @@ sub menu_draw_line {
       attrset($menu_pane,$menu_attributes{"title"});
 
       my $label = $menu_sel_label[$m_item];
-      if (ref($label) eq 'HASH') {
+      if (ref($label) =~ /^(?:HASH|Cmenu::Label)$/) {
         bless $menu_sel_label[$m_item], 'Cmenu::Label';
         my $n = create_color_pair($label->{fg}, $label->{bg});
         attrset($menu_pane, COLOR_PAIR($n));
@@ -1833,7 +1833,7 @@ sub menu_draw_active {
       attrset($menu_pane,$menu_attributes{"rtitle"});
 
       my $label = $menu_sel_label[$menu_cur_option];
-      if (ref($label) eq 'HASH') {
+      if (ref($label) =~ /^(?:HASH|Cmenu::Label)$/) {
         bless $menu_sel_label[$m_item], 'Cmenu::Label';
         $label = ucfirst($label->{text});
       }
