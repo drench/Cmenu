@@ -1682,6 +1682,7 @@ sub menu_draw_line {
 
       my $label = $menu_sel_label[$m_item];
       if (ref($label) eq 'HASH') {
+        bless $menu_sel_label[$m_item], 'Cmenu::Label';
         my $n = create_color_pair($label->{fg}, $label->{bg});
         attrset($menu_pane, COLOR_PAIR($n));
         $label = ucfirst($label->{text});
@@ -1833,6 +1834,7 @@ sub menu_draw_active {
 
       my $label = $menu_sel_label[$menu_cur_option];
       if (ref($label) eq 'HASH') {
+        bless $menu_sel_label[$m_item], 'Cmenu::Label';
         $label = ucfirst($label->{text});
       }
 
@@ -2750,6 +2752,10 @@ sub create_color_pair {
 
     die 'Unable to create color pair';
 }
+
+package Cmenu::Label;
+
+use overload '""' => sub { my $self = shift; return $self->{text} };
 
 
 # ##################################################################################
