@@ -919,6 +919,10 @@ sub menu_item {
   my ($item_text,$item_sel,$item_style,$item_data,$item_pos) = @_;
   my ($i);
 
+  if (ref($item_text) eq 'HASH') {
+    bless $item_text, 'Cmenu::Label';
+  }
+
   if (ref($item_sel) eq 'HASH') {
     bless $item_sel, 'Cmenu::Label';
   }
@@ -953,7 +957,7 @@ sub menu_item {
     ($i,undef,undef)=split(/ /,$item_pos);
     if ($i > $max_item_len) { $max_item_len = $i; }
   } else {
-    $_ = length($item_text);
+    $_ = length("$item_text"); # Quotes necessary to stringify objects
     if ($_ > $max_item_len) { $max_item_len = $_; }
   }
   # Test the length of the Text_label
@@ -1804,7 +1808,16 @@ sub menu_draw_line {
     # Display item text left aligned (normal)
     move($menu_pane,$i,$m_indent+$menu_item_pos);
     attrset($menu_pane,$menu_attributes{"text"});
-    addstr($menu_pane,$menu_sel_text[$m_item]);
+
+    my $label = $menu_sel_text[$m_item];
+    if (ref($label) eq 'Cmenu::Label') {
+      my $n = create_color_pair($label->{fg}, $label->{bg});
+      attrset($menu_pane, COLOR_PAIR($n));
+      addstr($menu_pane, $label->{text});
+    }
+    else {
+      addstr($menu_pane, $label);
+    }
   }
 }
 
