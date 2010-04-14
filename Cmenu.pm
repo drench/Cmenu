@@ -919,6 +919,10 @@ sub menu_item {
   my ($item_text,$item_sel,$item_style,$item_data,$item_pos) = @_;
   my ($i);
 
+  if (ref($item_sel) eq 'HASH') {
+    bless $item_sel, 'Cmenu::Label';
+  }
+
 # Sanity checks
   if (!$item_style) { $item_style = 0; }            # force null sets to zero
   if (!$item_text) {                                # return if there was no text
@@ -954,7 +958,7 @@ sub menu_item {
   }
   # Test the length of the Text_label
   # For numeric or radio labels, this is forced to be 3 chracters long
-  $_ = length($item_sel);
+  $_ = length("$item_sel"); # Quotes necessary to stringify objects
   if(($item_style==1)||($item_style==2)||($item_style==3)) {
     $_=3;
   }
